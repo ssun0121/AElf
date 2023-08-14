@@ -34,7 +34,7 @@ public class PeerConnectedEventHandler : ILocalEventHandler<PeerConnectedEventDa
         };
 
         var announcement = new AnnouncementReceivedEventData(blockAnnouncement, eventData.NodeInfo.Pubkey.ToHex());
-
+        Logger.LogDebug($"Start to announcement received [peer connection]");
         await LocalEventBus.PublishAsync(announcement);
     }
 }

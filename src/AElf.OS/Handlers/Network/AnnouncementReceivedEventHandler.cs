@@ -38,6 +38,7 @@ public class AnnouncementReceivedEventHandler : ILocalEventHandler<AnnouncementR
 
     public Task HandleEventAsync(AnnouncementReceivedEventData eventData)
     {
+        Logger.LogDebug($"Received AnnouncementReceivedEvent.{eventData.Announce.BlockHash}-{eventData.Announce.BlockHeight}-{eventData.SenderPubKey}");
         var _ = ProcessNewBlockAsync(eventData.Announce, eventData.SenderPubKey);
         return Task.CompletedTask;
     }
@@ -49,6 +50,8 @@ public class AnnouncementReceivedEventHandler : ILocalEventHandler<AnnouncementR
         if (!await _blockSyncValidationService.ValidateAnnouncementBeforeSyncAsync(chain, blockAnnouncement,
                 senderPubkey)) return;
 
+        Logger.LogDebug($"Start to process new block [AnnouncementReceivedEventData].{blockAnnouncement.BlockHash}-{blockAnnouncement.BlockHeight}-{senderPubkey}");
+
         await _blockSyncService.SyncByAnnouncementAsync(chain, new SyncAnnouncementDto
         {
             SyncBlockHash = blockAnnouncement.BlockHash,
@@ -56,5 +59,8 @@ public class AnnouncementReceivedEventHandler : ILocalEventHandler<AnnouncementR
             SuggestedPeerPubkey = senderPubkey,
             BatchRequestBlockCount = _blockSyncOptions.MaxBatchRequestBlockCount
         });
+        
+        Logger.LogDebug($"End to process new block [AnnouncementReceivedEventData].{blockAnnouncement.BlockHash}-{blockAnnouncement.BlockHeight}-{senderPubkey}");
+
     }
 }

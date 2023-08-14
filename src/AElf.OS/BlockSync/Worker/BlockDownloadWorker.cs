@@ -61,9 +61,13 @@ public class BlockDownloadWorker : AsyncPeriodicBackgroundWorkerBase
                 }
 
                 Logger.LogDebug(
-                    $"Execute download job: CurrentTargetBlockHeight: {jobInfo.CurrentTargetBlockHeight}, TargetBlockHeight:{jobInfo.TargetBlockHeight}, SuggestedPeerPubkey:{jobInfo.SuggestedPeerPubkey}.");
+                    $"Start to execute download job: CurrentTargetBlockHeight: {jobInfo.CurrentTargetBlockHeight}, TargetBlockHeight:{jobInfo.TargetBlockHeight}, SuggestedPeerPubkey:{jobInfo.SuggestedPeerPubkey}.");
 
                 var downloadResult = await DownloadBlocksAsync(chain, jobInfo);
+                
+                Logger.LogDebug(
+                    $"End to execute download job: CurrentTargetBlockHeight: {jobInfo.CurrentTargetBlockHeight}, TargetBlockHeight:{jobInfo.TargetBlockHeight}, SuggestedPeerPubkey:{jobInfo.SuggestedPeerPubkey}.");
+
 
                 if (downloadResult.DownloadBlockCount == 0)
                 {

@@ -44,6 +44,7 @@ public class FullBlockchainExecutingService : IBlockchainExecutingService, ITran
         {
             foreach (var block in blocks)
             {
+                Logger.LogDebug($"Start to process block.block height:{block.Height}");
                 var blockExecutedSet = await ProcessBlockAsync(block);
                 if (blockExecutedSet == null)
                 {
@@ -54,7 +55,8 @@ public class FullBlockchainExecutingService : IBlockchainExecutingService, ITran
                 executionResult.SuccessBlockExecutedSets.Add(blockExecutedSet);
                 Logger.LogInformation(
                     $"Executed block {block.GetHash()} at height {block.Height}, with {block.Body.TransactionsCount} txns.");
-
+                Logger.LogDebug($"End to process block.block height:{block.Height}");
+                
                 await LocalEventBus.PublishAsync(new BlockAcceptedEvent { BlockExecutedSet = blockExecutedSet });
             }
         }
@@ -72,6 +74,7 @@ public class FullBlockchainExecutingService : IBlockchainExecutingService, ITran
 
     private async Task<BlockExecutedSet> ExecuteBlockAsync(Block block)
     {
+        Logger.LogDebug($"FullBlockchainExecutingService:Start to execute block,{block.Height}");
         var blockHash = block.GetHash();
 
         var blockState = await _blockStateSetManger.GetBlockStateSetAsync(blockHash);
@@ -127,6 +130,7 @@ public class FullBlockchainExecutingService : IBlockchainExecutingService, ITran
     /// <returns>Block processing result is true if succeed, otherwise false.</returns>
     private async Task<BlockExecutedSet> ProcessBlockAsync(Block block)
     {
+        Logger.LogDebug($"Start to process block,height:{block.Height},transaction ids:{block.TransactionIds}");
         var blockHash = block.GetHash();
         // Set the other blocks as bad block if found the first bad block
         if (!await _blockValidationService.ValidateBlockBeforeExecuteAsync(block))
@@ -135,6 +139,7 @@ public class FullBlockchainExecutingService : IBlockchainExecutingService, ITran
             return null;
         }
 
+        Logger.LogDebug($"Start to execute block,block height:{block.Height}");
         var blockExecutedSet = await ExecuteBlockAsync(block);
 
         if (blockExecutedSet == null)

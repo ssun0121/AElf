@@ -52,11 +52,14 @@ public class BlockReceivedEventHandler : ILocalEventHandler<BlockReceivedEvent>,
                 senderPubkey))
             return;
 
+        Logger.LogDebug($"Start to sync block [BlockReceivedEvent] {senderPubkey}-{blockWithTransactions.Height}-{blockWithTransactions.Transactions.Count}");
         await _blockSyncService.SyncByBlockAsync(chain, new SyncBlockDto
         {
             BlockWithTransactions = blockWithTransactions,
             BatchRequestBlockCount = _blockSyncOptions.MaxBatchRequestBlockCount,
             SuggestedPeerPubkey = senderPubkey
         });
+        Logger.LogDebug($"End to sync block [BlockReceivedEvent] {senderPubkey}-{blockWithTransactions.Height}-{blockWithTransactions.Transactions.Count}");
+
     }
 }

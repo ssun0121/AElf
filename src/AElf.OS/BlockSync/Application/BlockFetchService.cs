@@ -35,6 +35,7 @@ public class BlockFetchService : IBlockFetchService
 
     public async Task<bool> FetchBlockAsync(Hash blockHash, long blockHeight, string suggestedPeerPubKey)
     {
+        Logger.LogDebug($"Fetch block,block height {blockHeight}");
         var hasBlock = await _blockchainService.HasBlockAsync(blockHash);
         if (hasBlock)
         {
@@ -61,6 +62,7 @@ public class BlockFetchService : IBlockFetchService
             return false;
         }
 
+        Logger.LogDebug($"Start to attach block with transaction [fetch block].{blockWithTransactions}");
         _blockSyncQueueService.Enqueue(
             async () =>
             {
@@ -68,6 +70,8 @@ public class BlockFetchService : IBlockFetchService
                     suggestedPeerPubKey);
             },
             OSConstants.BlockSyncAttachQueueName);
+        Logger.LogDebug($"End to attach block with transaction [fetch block].{blockWithTransactions}");
+
 
         return true;
     }

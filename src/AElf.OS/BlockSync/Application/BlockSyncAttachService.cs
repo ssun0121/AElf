@@ -55,8 +55,10 @@ public class BlockSyncAttachService : IBlockSyncAttachService
             return;
         }
 
+        Logger.LogDebug($"Add transactions, transaction ids:{blockWithTransactions.TransactionIds}");
         await _blockchainService.AddTransactionsAsync(blockWithTransactions.Transactions);
         var block = blockWithTransactions.ToBlock();
+        Logger.LogDebug($"Add blocks, block:{block.TransactionIds},header:{block.Header},height:{block.Height}");
         await _blockchainService.AddBlockAsync(block);
 
         _blockSyncQueueService.Enqueue(async () =>

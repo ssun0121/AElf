@@ -55,7 +55,10 @@ public class BlockAttachService : IBlockAttachService, ITransientDependency
         var executionResult = new BlockExecutionResult();
         try
         {
+            Logger.LogDebug($"Start to execute blocks {notExecutedBlocks.Select(b=>b.TransactionIds)}");
             executionResult = await _blockchainExecutingService.ExecuteBlocksAsync(notExecutedBlocks);
+            Logger.LogDebug($"End to execute blocks {notExecutedBlocks.Select(b=>b.TransactionIds)}");
+
         }
         catch (Exception e)
         {

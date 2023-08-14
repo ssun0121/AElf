@@ -35,6 +35,7 @@ public class BlockSyncService : IBlockSyncService
 
     public async Task SyncByAnnouncementAsync(Chain chain, SyncAnnouncementDto syncAnnouncementDto)
     {
+        Logger.LogDebug($"Sync by announcement and start to fetch block best chain height:{chain.BestChainHeight},longest chain height:{chain.LongestChainHeight}");
         if (syncAnnouncementDto.SyncBlockHash != null && syncAnnouncementDto.SyncBlockHeight <=
             chain.LongestChainHeight + BlockSyncConstants.BlockSyncModeHeightOffset)
         {
@@ -43,14 +44,18 @@ public class BlockSyncService : IBlockSyncService
                 Logger.LogWarning("Block sync fetch queue is too busy.");
                 return;
             }
-
+            Logger.LogDebug($"Start to enqueue fetch block [Sync by announcement].{syncAnnouncementDto.SyncBlockHeight}-{syncAnnouncementDto.BatchRequestBlockCount}");
             EnqueueFetchBlockJob(syncAnnouncementDto);
+            Logger.LogDebug($"End to enqueue fetch block [Sync by announcement].{syncAnnouncementDto.SyncBlockHeight}-{syncAnnouncementDto.BatchRequestBlockCount}");
+
         }
         else
         {
+            Logger.LogDebug($"Start to enqueue block download job [Sync by announcement].{syncAnnouncementDto.SyncBlockHeight}-{syncAnnouncementDto.BatchRequestBlockCount}-{syncAnnouncementDto.SuggestedPeerPubkey}");
             await _blockDownloadJobManager.EnqueueAsync(syncAnnouncementDto.SyncBlockHash, syncAnnouncementDto
                     .SyncBlockHeight,
                 syncAnnouncementDto.BatchRequestBlockCount, syncAnnouncementDto.SuggestedPeerPubkey);
+            Logger.LogDebug($"End to enqueue block download job [Sync by announcement].{syncAnnouncementDto.SyncBlockHeight}-{syncAnnouncementDto.BatchRequestBlockCount}-{syncAnnouncementDto.SuggestedPeerPubkey}");
         }
     }
 
@@ -58,11 +63,20 @@ public class BlockSyncService : IBlockSyncService
     {
         if (syncBlockDto.BlockWithTransactions.Height <=
             chain.LongestChainHeight + BlockSyncConstants.BlockSyncModeHeightOffset)
+        {
+            Logger.LogDebug($"Start to attach block job [Sync by block].chain longest height:{chain.LongestChainHeight}-peer pubkey:{syncBlockDto.SuggestedPeerPubkey}");
             EnqueueAttachBlockJob(syncBlockDto.BlockWithTransactions, syncBlockDto.SuggestedPeerPubkey);
+            Logger.LogDebug($"End to attach block job [Sync by block].chain longest height:{chain.LongestChainHeight}-peer pubkey:{syncBlockDto.SuggestedPeerPubkey}");
+        }
         else
+        {
+            Logger.LogDebug($"Start to enqueue block download job [Sync by block].{syncBlockDto.BlockWithTransactions}-{syncBlockDto.BatchRequestBlockCount}-{syncBlockDto.SuggestedPeerPubkey}");
             await _blockDownloadJobManager.EnqueueAsync(syncBlockDto.BlockWithTransactions.GetHash(),
                 syncBlockDto.BlockWithTransactions.Height,
                 syncBlockDto.BatchRequestBlockCount, syncBlockDto.SuggestedPeerPubkey);
+            Logger.LogDebug($"End to enqueue block download job [Sync by block].{syncBlockDto.BlockWithTransactions}-{syncBlockDto.BatchRequestBlockCount}-{syncBlockDto.SuggestedPeerPubkey}");
+        }
+        
     }
 
     private void EnqueueFetchBlockJob(SyncAnnouncementDto syncAnnouncementDto)
@@ -74,15 +88,26 @@ public class BlockSyncService : IBlockSyncService
 
             var fetchResult = false;
             if (ValidateQueueAvailability())
+            {
+                Logger.LogDebug($"Start to fetch block.{syncAnnouncementDto.SyncBlockHash}-{syncAnnouncementDto.SyncBlockHeight}");
                 fetchResult = await _blockFetchService.FetchBlockAsync(syncAnnouncementDto.SyncBlockHash,
                     syncAnnouncementDto.SyncBlockHeight, syncAnnouncementDto.SuggestedPeerPubkey);
+                Logger.LogDebug($"End to fetch block.{syncAnnouncementDto.SyncBlockHash}-{syncAnnouncementDto.SyncBlockHeight}");
 
+            }
+            
             if (fetchResult)
+            {
+                Logger.LogDebug($"Fetch block success,block hash:{syncAnnouncementDto.SyncBlockHash}-block height:{syncAnnouncementDto.SyncBlockHeight}");
                 return;
+            }
+                
             if (_announcementCacheProvider.TryGetAnnouncementNextSender(syncAnnouncementDto.SyncBlockHash,
                     out var senderPubKey))
             {
+                Logger.LogDebug($"Fetch block failed {syncAnnouncementDto.SuggestedPeerPubkey},try to fetch from next sender {senderPubKey}");
                 syncAnnouncementDto.SuggestedPeerPubkey = senderPubKey;
+                Logger.LogDebug("Enqueue fetch block next sender.");
                 EnqueueFetchBlockJob(syncAnnouncementDto);
             }
         }, OSConstants.BlockFetchQueueName);
@@ -93,7 +118,9 @@ public class BlockSyncService : IBlockSyncService
         _blockSyncQueueService.Enqueue(async () =>
         {
             Logger.LogDebug($"Block sync: sync block, block: {blockWithTransactions}.");
+            Logger.LogDebug($"Start to attach block [EnqueueAttachBlockJob].{blockWithTransactions}");
             await _blockSyncAttachService.AttachBlockWithTransactionsAsync(blockWithTransactions, senderPubkey);
+            Logger.LogDebug($"End to attach block [EnqueueAttachBlockJob].{blockWithTransactions}");
         }, OSConstants.BlockSyncAttachQueueName);
     }
 

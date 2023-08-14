@@ -57,6 +57,7 @@ public class GrpcRequestProcessor : IGrpcRequestProcessor, ISingletonDependency
 
         if (!peer.TryAddKnownBlock(block.GetHash()))
             return Task.CompletedTask;
+        Logger.LogDebug("Start to block received [process block]");
         _ = EventBus.PublishAsync(new BlockReceivedEvent(block, peerPubkey));
         return Task.CompletedTask;
     }
@@ -75,7 +76,9 @@ public class GrpcRequestProcessor : IGrpcRequestProcessor, ISingletonDependency
             return Task.CompletedTask;
 
         if (peer.SyncState != SyncState.Finished) peer.SyncState = SyncState.Finished;
-
+        
+        Logger.LogDebug($"Announce block hash {announcement.BlockHash}; block height {announcement.BlockHeight}.");
+        Logger.LogDebug("Start to announcement received [process announcement]");
         _ = EventBus.PublishAsync(new AnnouncementReceivedEventData(announcement, peerPubkey));
 
         return Task.CompletedTask;
