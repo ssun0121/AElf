@@ -60,6 +60,7 @@ message TransactionTrace {
     int64 elapsed = 11;
     ExecutionStatus execution_status = 12;
     TransactionExecutingStateSet state_set = 13;
+//    repeated VirtualLogEvent virtual_logs = 14;
 }
 
 message ExecutionReturnSet {

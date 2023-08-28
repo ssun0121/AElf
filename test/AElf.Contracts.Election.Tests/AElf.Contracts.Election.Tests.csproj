@@ -28,6 +28,7 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\AElf.ContractTestKit\AElf.ContractTestKit.csproj" />
+        <ProjectReference Include="..\..\src\AElf.Kernel.FeatureManager\AElf.Kernel.FeatureManager.csproj" />
         <ProjectReference Include="..\..\src\AElf.Kernel.SmartContract.ExecutionPluginForMethodFee\AElf.Kernel.SmartContract.ExecutionPluginForMethodFee.csproj" />
         <ProjectReference Include="..\..\src\AElf.Kernel.SmartContract.ExecutionPluginForResourceFee\AElf.Kernel.SmartContract.ExecutionPluginForResourceFee.csproj" />
         <ProjectReference Include="..\..\test\AElf.Contracts.TestContract.TransactionFeeCharging\AElf.Contracts.TestContract.TransactionFeeCharging.csproj">
@@ -61,6 +62,9 @@
     <ItemGroup>
         <ContractStub Include="..\..\protobuf\test_virtual_address_contract.proto">
             <Link>Protobuf\Proto\test_virtual_address_contract.proto</Link>
+        </ContractStub>
+        <ContractStub Include="..\..\protobuf\virtual_log.proto">
+            <Link>Protobuf\Proto\virtual_log.proto</Link>
         </ContractStub>
     </ItemGroup>
     

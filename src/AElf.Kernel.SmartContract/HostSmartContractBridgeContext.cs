@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AElf.Cryptography;
@@ -15,9 +12,11 @@ using AElf.Types;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Options;
-using Google.Protobuf.Collections;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Threading;
+using AElf.CSharp.Core.Extension;
+using AElf.Kernel.FeatureManager;
+using AElf.Virtual;
 
 namespace AElf.Kernel.SmartContract;
 
@@ -33,18 +32,22 @@ public class HostSmartContractBridgeContext : IHostSmartContractBridgeContext, I
     private readonly Lazy<ICachedStateProvider> _lazyStateProvider;
     private readonly ISmartContractBridgeService _smartContractBridgeService;
     private readonly ITransactionReadOnlyExecutionService _transactionReadOnlyExecutionService;
-
+    private readonly IFeatureActiveService _featureActiveService;
     private ITransactionContext _transactionContext;
+    private readonly ContractOptions _contractOptions;
 
     public HostSmartContractBridgeContext(ISmartContractBridgeService smartContractBridgeService,
-        ITransactionReadOnlyExecutionService transactionReadOnlyExecutionService, IAccountService accountService,
-        IOptionsSnapshot<HostSmartContractBridgeContextOptions> options)
+        ITransactionReadOnlyExecutionService transactionReadOnlyExecutionService,
+        IAccountService accountService,IFeatureActiveService featureActiveService,
+        IOptionsSnapshot<HostSmartContractBridgeContextOptions> options,
+        IOptionsSnapshot<ContractOptions> contractOptions)
     {
         _smartContractBridgeService = smartContractBridgeService;
         _transactionReadOnlyExecutionService = transactionReadOnlyExecutionService;
         _accountService = accountService;
-
+        _featureActiveService = featureActiveService;
         Variables = new ContextVariableDictionary(options.Value.ContextVariables);
+        _contractOptions = contractOptions.Value;
 
         var self = this;
 
@@ -128,6 +131,7 @@ public class HostSmartContractBridgeContext : IHostSmartContractBridgeContext, I
     public void FireLogEvent(LogEvent logEvent)
     {
         TransactionContext.Trace.Logs.Add(logEvent);
+        
     }
 
     public Hash GenerateId(Address contractAddress, IEnumerable<byte> bytes)
@@ -233,25 +237,50 @@ public class HostSmartContractBridgeContext : IHostSmartContractBridgeContext, I
     public void SendVirtualInline(Hash fromVirtualAddress, Address toAddress, string methodName,
         ByteString args)
     {
-        TransactionContext.Trace.InlineTransactions.Add(new Transaction
+        var transaction = new Transaction
         {
             From = ConvertVirtualAddressToContractAddress(fromVirtualAddress, Self),
             To = toAddress,
             MethodName = methodName,
             Params = args
-        });
+        };
+        TransactionContext.Trace.InlineTransactions.Add(transaction);
+        if (AsyncHelper.RunSync(() => _featureActiveService.IsFeatureActive("Virtual")))
+        {
+            FireVirtualLogEvent(transaction);
+        }
     }
 
     public void SendVirtualInlineBySystemContract(Hash fromVirtualAddress, Address toAddress, string methodName,
         ByteString args)
     {
-        TransactionContext.Trace.InlineTransactions.Add(new Transaction
+        var transaction = new Transaction
         {
             From = ConvertVirtualAddressToContractAddressWithContractHashName(fromVirtualAddress, Self),
             To = toAddress,
             MethodName = methodName,
             Params = args
-        });
+        };
+        TransactionContext.Trace.InlineTransactions.Add(transaction);
+        if (AsyncHelper.RunSync(() => _featureActiveService.IsFeatureActive("Virtual")))
+        {
+            FireVirtualLogEvent(transaction);
+        }
+    }
+    
+    
+    private void FireVirtualLogEvent(Transaction transaction)
+    {
+        var log = new VirtualLogEvent
+        {
+            From = transaction.From,
+            To = transaction.To,
+            MethodName = transaction.MethodName,
+            Params = transaction.Params,
+            SenderAddress = Sender,
+            OriginAddress = Origin ?? Sender
+        };
+        FireLogEvent(log.ToLogEvent(Self));
     }
 
     public Address ConvertVirtualAddressToContractAddress(Hash virtualAddress, Address contractAddress)

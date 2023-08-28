@@ -13,10 +13,14 @@
         <ProjectReference Include="..\AElf.CSharp.Core\AElf.CSharp.Core.csproj"/>
         <ProjectReference Include="..\AElf.Kernel.Core\AElf.Kernel.Core.csproj"/>
         <ProjectReference Include="..\AElf.Kernel.SmartContract.Shared\AElf.Kernel.SmartContract.Shared.csproj"/>
+        <ProjectReference Include="..\AElf.Kernel.FeatureManager.Shared\AElf.Kernel.FeatureManager.Shared.csproj"/>
     </ItemGroup>
     <ItemGroup>
         <ContractStub Include="..\..\protobuf\acs0.proto">
             <Link>Protobuf\Proto\acs0.proto</Link>
+        </ContractStub>
+        <ContractStub Include="..\..\protobuf\virtual_log.proto">
+            <Link>Protobuf\Proto\virtual_log.proto</Link>
         </ContractStub>
     </ItemGroup>
 </Project>

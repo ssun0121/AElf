@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+using AElf.Contracts.Configuration;
 using AElf.Contracts.Consensus.AEDPoS;
 using AElf.Contracts.Economic;
 using AElf.Contracts.Economic.TestBase;
@@ -11,7 +13,12 @@ using AElf.Contracts.Treasury;
 using AElf.Contracts.Vote;
 using AElf.ContractTestKit;
 using AElf.Cryptography.ECDSA;
+using AElf.CSharp.Core.Extension;
+using AElf.Kernel;
+using AElf.Kernel.Blockchain.Application;
+using AElf.Standards.ACS3;
 using AElf.Types;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Volo.Abp.Threading;
 
@@ -20,9 +27,12 @@ namespace AElf.Contracts.Election;
 public class ElectionContractTestBase : EconomicContractsTestBase
 {
     protected readonly IBlockTimeProvider BlockTimeProvider;
+    private readonly IBlockchainService _blockchainService;
+
 
     protected ElectionContractTestBase()
     {
+        _blockchainService = GetRequiredService<IBlockchainService>();
         BlockTimeProvider = GetRequiredService<IBlockTimeProvider>();
     }
     
@@ -38,6 +48,9 @@ public class ElectionContractTestBase : EconomicContractsTestBase
         GetTokenConverterContractTester(BootMinerKeyPair);
 
     internal VoteContractImplContainer.VoteContractImplStub VoteContractStub => GetVoteContractTester(BootMinerKeyPair);
+    
+    internal ConfigurationImplContainer.ConfigurationImplStub ConfigurationStub =>
+        GetConfigurationTester(BootMinerKeyPair);
 
     internal ProfitContractImplContainer.ProfitContractImplStub ProfitContractStub =>
         GetProfitContractTester(BootMinerKeyPair);
@@ -80,7 +93,8 @@ public class ElectionContractTestBase : EconomicContractsTestBase
     protected void InitializeContracts()
     {
         DeployAllContracts();
-
+        var chain = AsyncHelper.RunSync(()=>_blockchainService.GetChainAsync());
+        AsyncHelper.RunSync(()=>_blockchainService.SetIrreversibleBlockAsync(chain, chain.BestChainHeight, chain.BestChainHash));
         AsyncHelper.RunSync(InitializeParliamentContract);
         AsyncHelper.RunSync(InitializeTreasuryConverter);
         AsyncHelper.RunSync(InitializeElection);
@@ -91,6 +105,8 @@ public class ElectionContractTestBase : EconomicContractsTestBase
 
         MinerElectionVotingItemId = AsyncHelper.RunSync(() =>
             ElectionContractStub.GetMinerElectionVotingItemId.CallAsync(new Empty()));
+        
+        AsyncHelper.RunSync(SetConfiguration);
     }
 
     internal BasicContractZeroImplContainer.BasicContractZeroImplStub GetBasicContractTester(ECKeyPair keyPair)
@@ -119,6 +135,11 @@ public class ElectionContractTestBase : EconomicContractsTestBase
     internal ProfitContractImplContainer.ProfitContractImplStub GetProfitContractTester(ECKeyPair keyPair)
     {
         return GetTester<ProfitContractImplContainer.ProfitContractImplStub>(ProfitContractAddress, keyPair);
+    }
+    
+    internal ConfigurationImplContainer.ConfigurationImplStub GetConfigurationTester(ECKeyPair keyPair)
+    {
+        return GetTester<ConfigurationImplContainer.ConfigurationImplStub>(ConfigurationAddress, keyPair);
     }
 
     internal ElectionContractImplContainer.ElectionContractImplStub GetElectionContractTester(ECKeyPair keyPair)
@@ -151,5 +172,28 @@ public class ElectionContractTestBase : EconomicContractsTestBase
     internal VirtualAddressContractContainer.VirtualAddressContractStub GetVirtualAddressContractTester(ECKeyPair keyPair)
     {
         return GetTester<VirtualAddressContractContainer.VirtualAddressContractStub>(VirtualAddressContractAddress, keyPair);
+    }
+
+    internal async Task SetConfiguration()
+    {
+        var proposalId = (await ParliamentContractStub.CreateProposal.SendAsync(new CreateProposalInput
+        {
+            ContractMethodName = nameof(ConfigurationStub.SetConfiguration),
+            ExpiredTime = TimestampHelper.GetUtcNow().AddDays(1),
+            Params = new SetConfigurationInput
+            {
+                Key = "AElfFeature_Virtual",
+                Value = new Int64Value() { Value = 10 }.ToByteString()
+            }.ToByteString(),
+            ToAddress = ConfigurationAddress,
+            OrganizationAddress = await ParliamentContractStub.GetDefaultOrganizationAddress.CallAsync(new Empty())
+        })).Output;
+        foreach (var keyPair in InitialCoreDataCenterKeyPairs)
+        {
+            var parliamentContractStub = GetParliamentContractTester(keyPair);
+            await parliamentContractStub.Approve.SendAsync(proposalId);
+        }
+        
+        await ParliamentContractStub.Release.SendAsync(proposalId);
     }
 }

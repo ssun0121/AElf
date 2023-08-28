@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package aelf;
 
+import "aelf/options.proto";
+
 option csharp_namespace = "AElf.Types";
 
 message Transaction {
@@ -70,7 +72,11 @@ message TransactionResult {
     Hash block_hash = 7;
     // Failed execution error message.
     string error = 10;
+//    // The virtual inline transaction log events.
+//    repeated LogEvent virtual_logs = 11;
 }
+
+
 
 message LogEvent {
     // The contract address.

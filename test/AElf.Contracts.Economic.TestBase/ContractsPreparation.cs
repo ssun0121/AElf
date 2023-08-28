@@ -54,6 +54,7 @@ public partial class EconomicContractsTestBase
     private Address _profitAddress;
     protected Address ProfitContractAddress => GetOrDeployContract(Contracts.Profit, ref _profitAddress);
 
+
     private Address _electionAddress;
     protected Address ElectionContractAddress => GetOrDeployContract(Contracts.Election, ref _electionAddress);
 

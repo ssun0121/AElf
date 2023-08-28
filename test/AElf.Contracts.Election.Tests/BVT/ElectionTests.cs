@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Contracts.Configuration;
 using AElf.Contracts.Economic;
 using AElf.Contracts.Economic.TestBase;
 using AElf.Contracts.MultiToken;
@@ -12,8 +13,10 @@ using AElf.Cryptography.ECDSA;
 using AElf.CSharp.Core;
 using AElf.CSharp.Core.Extension;
 using AElf.Kernel;
+using AElf.Standards.ACS0;
 using AElf.Standards.ACS3;
 using AElf.Types;
+using AElf.Virtual;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Shouldly;
@@ -1987,6 +1990,14 @@ public partial class ElectionContractTests : ElectionContractTestBase
     [Fact]
     public async Task VirtualAddress_Withdraw_Test()
     {
+        var height = await ConfigurationStub.GetConfiguration.CallAsync(new StringValue
+        {
+            Value = "AElfFeature_Virtual"
+        });
+        var h = new Int64Value();
+        h.MergeFrom(height.Value);
+        h.Value.ShouldBe(10);
+        
         var amount = 100;
         const int lockTime = 100 * 60 * 60 * 24;
         
@@ -1996,11 +2007,19 @@ public partial class ElectionContractTests : ElectionContractTestBase
         var voteId = await VirtualAddress_Vote_Test();
         BlockTimeProvider.SetBlockTime(TimestampHelper.GetUtcNow().AddDays(101));
         
-        await VirtualAddressContractStub.VirtualAddressWithdraw.SendAsync(new Hash
+        var transaction = await VirtualAddressContractStub.VirtualAddressWithdraw.SendAsync(new Hash
         {
             Value = voteId.Value
         });
         
+        var log = VirtualLogEvent.Parser.ParseFrom(transaction.TransactionResult.Logs.FirstOrDefault(l => l.Name == nameof(VirtualLogEvent))?.NonIndexed);
+        log.From.ShouldNotBe(VirtualAddressContractAddress);
+        log.SenderAddress.ShouldBe(Accounts[0].Address);
+        log.OriginAddress.ShouldBe(Accounts[0].Address);
+        log.MethodName.ShouldBe("Withdraw");
+        log.To.ShouldBe(ElectionContractAddress);
+        
+
         var result = await ElectionContractStub.GetElectorVote.CallAsync(new StringValue
         {
             Value = address.ToBase58()
