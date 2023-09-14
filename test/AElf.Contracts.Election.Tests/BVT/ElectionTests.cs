@@ -7,6 +7,7 @@ using AElf.Contracts.MultiToken;
 using AElf.Contracts.Parliament;
 using AElf.Contracts.Profit;
 using AElf.Contracts.TestContract.VirtualAddress;
+using AElf.Contracts.TestContract.VirtualTestA;
 using AElf.Contracts.Vote;
 using AElf.Cryptography.ECDSA;
 using AElf.CSharp.Core;
@@ -24,6 +25,21 @@ namespace AElf.Contracts.Election;
 public partial class ElectionContractTests : ElectionContractTestBase
 {
     public const int CandidatesCount = 19;
+
+    [Fact]
+    public async Task VirtualTest()
+    {
+        await VirtualAddressContractStub.ForwardCallVirtualTest.SendAsync(new ForwardCallInput
+        {
+            ContractAddress = VirtualTestAContractAddress,
+            MethodName = "CallA",
+            Args = new CallAInput
+            {
+                ContractAddress = VirtualTestBContractAddress,
+                Value = 10
+            }.ToByteString()
+        });
+    }
 
     [Fact]
     public async Task ElectionContract_RegisterElectionVotingEvent_Test()

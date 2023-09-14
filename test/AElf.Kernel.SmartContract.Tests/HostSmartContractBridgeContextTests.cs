@@ -75,6 +75,61 @@ public class HostSmartContractBridgeContextTests : SmartContractRunnerTestBase
         inlineTransaction[0].To.ShouldBe(to);
         inlineTransaction[0].MethodName.ShouldBe(methodName);
         inlineTransaction[0].Params.ShouldBe(argBytes);
+
+        var virtualTransaction = _bridgeContext.TransactionContext.Trace.VirtualTransactions;
+        virtualTransaction.Value.Count.ShouldBe(1);
+        virtualTransaction.Value.ContainsKey(0).ShouldBeTrue();
+        virtualTransaction.Value[0].MethodName = "TestVirtualInline";
+        virtualTransaction.Value[0].Signatory = _bridgeContext.Sender;
+    }
+    
+    [Fact]
+    public void Send_VirtualInline_Multiple_Success()
+    {
+        var from = HashHelper.ComputeFrom("hash");
+        var to = SampleAddress.AddressList[0];
+        var methodName = "TestVirtualInline";
+        var arg = "Arg";
+        var argBytes = new StringValue { Value = arg }.ToByteString();
+        _bridgeContext.SendVirtualInline(from, to, methodName, argBytes);
+        
+        var to2 = SampleAddress.AddressList[0];
+        var methodName2 = "TestSendInline";
+        var arg2 = "Arg";
+        var argBytes2 = new StringValue { Value = arg2 }.ToByteString();
+        _bridgeContext.SendInline(to2, methodName2, argBytes2);
+        
+        var from1 = HashHelper.ComputeFrom("hash1");
+        var to1 = SampleAddress.AddressList[0];
+        var methodName1 = "TestVirtualInline1";
+        var arg1 = "Arg";
+        var argBytes1 = new StringValue { Value = arg1 }.ToByteString();
+        _bridgeContext.SendVirtualInline(from1, to1, methodName1, argBytes1);
+
+        var inlineTransaction = _bridgeContext.TransactionContext.Trace.InlineTransactions;
+        inlineTransaction.Count.ShouldBe(3);
+        inlineTransaction[0].From.ShouldNotBe(_bridgeContext.Self);
+        inlineTransaction[0].To.ShouldBe(to);
+        inlineTransaction[0].MethodName.ShouldBe(methodName);
+        inlineTransaction[0].Params.ShouldBe(argBytes);
+        inlineTransaction[1].To.ShouldBe(to2);
+        inlineTransaction[1].MethodName.ShouldBe(methodName2);
+        inlineTransaction[1].Params.ShouldBe(argBytes2);
+        inlineTransaction[2].From.ShouldNotBe(_bridgeContext.Self);
+        inlineTransaction[2].To.ShouldBe(to1);
+        inlineTransaction[2].MethodName.ShouldBe(methodName1);
+        inlineTransaction[2].Params.ShouldBe(argBytes1);
+        
+        var virtualTransaction = _bridgeContext.TransactionContext.Trace.VirtualTransactions;
+        virtualTransaction.Value.Count.ShouldBe(2);
+        virtualTransaction.Value.ContainsKey(0).ShouldBeTrue();
+        virtualTransaction.Value.ContainsKey(1).ShouldBeFalse();
+        virtualTransaction.Value.ContainsKey(2).ShouldBeTrue();
+        virtualTransaction.Value[0].MethodName = "TestVirtualInline";
+        virtualTransaction.Value[0].Signatory = _bridgeContext.Sender;
+        virtualTransaction.Value[2].MethodName = "TestVirtualInline1";
+        virtualTransaction.Value[2].Signatory = _bridgeContext.Sender;
+        
     }
 
     [Fact]

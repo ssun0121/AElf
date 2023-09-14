@@ -37,6 +37,7 @@ public class TransactionResultStatusCacheProvider : ITransactionResultStatusCach
 
     public void AddTransactionResultStatus(Hash transactionId)
     {
+        Logger.LogDebug("Expiration time:{time}",_webAppOptions.TransactionResultStatusCacheSeconds);
         _validateResultsCache.Set(transactionId, new TransactionValidateStatus(),
             TimeSpan.FromSeconds(_webAppOptions.TransactionResultStatusCacheSeconds));
     }

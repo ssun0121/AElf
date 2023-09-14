@@ -2,6 +2,7 @@
 using AElf.Sdk.CSharp.State;
 using AElf.Standards.ACS1;
 using AElf.Types;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
 namespace AElf.Contracts.TestContract.A;
@@ -77,6 +78,13 @@ public class AContract : AContractContainer.AContractBase
 
     public override Empty SetMethodFee(MethodFees input)
     {
+        return new Empty();
+    }
+
+    public override Empty VirtualTxTest(VirtualTxTestInput input)
+    {
+        Context.SendVirtualInline(HashHelper.ComputeFrom("TestA"), State.BContract.Value, "VirtualTxTestB",
+            input.ToByteString());
         return new Empty();
     }
 

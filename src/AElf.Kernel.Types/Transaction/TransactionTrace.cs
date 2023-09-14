@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AElf.Types;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -26,6 +27,24 @@ public partial class TransactionTrace
 
             return o;
         }
+    }
+
+    public IEnumerable<VirtualTransaction> GetFlattenedVirtualTransactions()
+    {
+        foreach (var trace in PreTraces)
+        foreach (var value in trace.GetFlattenedVirtualTransactions())
+            yield return value;
+
+        foreach (var (_,value) in VirtualTransactions.Value)
+            yield return value;
+
+        foreach (var trace in InlineTraces)
+        foreach (var value in trace.GetFlattenedVirtualTransactions())
+            yield return value;
+
+        foreach (var trace in PostTraces)
+        foreach (var value in trace.GetFlattenedVirtualTransactions())
+            yield return value;
     }
 
     partial void OnConstruction()

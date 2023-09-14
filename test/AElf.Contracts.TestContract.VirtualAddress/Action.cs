@@ -66,6 +66,13 @@ public partial class Action : VirtualAddressContractContainer.VirtualAddressCont
         return new Empty();
     }
 
+    public override Empty ForwardCallVirtualTest(ForwardCallInput input)
+    {
+        Context.SendVirtualInline(HashHelper.ComputeFrom("TestVirtual"), input.ContractAddress, input.MethodName,
+            input.Args);
+        return new Empty();
+    }
+
     public override Address GetVirtualAddress(Empty input)
     {
         return Context.ConvertVirtualAddressToContractAddress(HashHelper.ComputeFrom("test"));

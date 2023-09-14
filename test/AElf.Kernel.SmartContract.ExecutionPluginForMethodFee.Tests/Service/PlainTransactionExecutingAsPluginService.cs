@@ -96,7 +96,13 @@ public class PlainTransactionExecutingAsPluginService : PlainTransactionExecutin
             {
                 Depth = depth + 1,
                 ChainContext = internalChainContext,
-                Transaction = inlineTx,
+                Transaction = new Transaction
+                {
+                    From = inlineTx.From,
+                    To = inlineTx.To,
+                    MethodName = inlineTx.MethodName,
+                    Params = inlineTx.Params
+                },
                 CurrentBlockTime = currentBlockTime,
                 Origin = txContext.Origin,
                 OriginTransactionId = originTransactionId

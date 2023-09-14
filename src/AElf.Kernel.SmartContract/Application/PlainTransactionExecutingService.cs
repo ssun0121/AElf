@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AElf.Kernel.SmartContract.Domain;
 using AElf.Kernel.SmartContract.Infrastructure;
 using AElf.Types;
+using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
@@ -85,7 +86,7 @@ public class PlainTransactionExecutingService : IPlainTransactionExecutingServic
                 if (!string.IsNullOrEmpty(trace.Error)) Logger.LogInformation("{Error}", trace.Error);
 #endif
                 var result = GetTransactionResult(trace, transactionExecutingDto.BlockHeader.Height);
-
+                
                 var returnSet = GetReturnSet(trace, result);
                 returnSets.Add(returnSet);
             }
@@ -175,11 +176,15 @@ public class PlainTransactionExecutingService : IPlainTransactionExecutingServic
             await executive.ApplyAsync(txContext);
 
             if (txContext.Trace.IsSuccessful())
+            {
+                if (singleTxExecutingDto.ParentVirtualTxId != null)
+                    txContext.Trace.ParentVirtualTransactionId = singleTxExecutingDto.ParentVirtualTxId;
                 await ExecuteInlineTransactions(singleTxExecutingDto.Depth, singleTxExecutingDto.CurrentBlockTime,
                     txContext, internalStateCache,
                     internalChainContext,
                     singleTxExecutingDto.OriginTransactionId,
                     cancellationToken);
+            }
 
             #region PostTransaction
 
@@ -218,8 +223,9 @@ public class PlainTransactionExecutingService : IPlainTransactionExecutingServic
     {
         var trace = txContext.Trace;
         internalStateCache.Update(txContext.Trace.GetStateSets());
-        foreach (var inlineTx in txContext.Trace.InlineTransactions)
+        for (var i = 0; i < txContext.Trace.InlineTransactions.Count; i++)
         {
+            var inlineTx = txContext.Trace.InlineTransactions[i];
             var singleTxExecutingDto = new SingleTransactionExecutingDto
             {
                 Depth = depth + 1,
@@ -229,6 +235,17 @@ public class PlainTransactionExecutingService : IPlainTransactionExecutingServic
                 Origin = txContext.Origin,
                 OriginTransactionId = originTransactionId
             };
+            if (txContext.Trace.VirtualTransactions != null && txContext.Trace.VirtualTransactions.Value.ContainsKey(i))
+            {
+                Logger.LogDebug("Start to handle virtual transaction. Index in inline transaction :{index}",i);
+                var virtualTransaction = txContext.Trace.VirtualTransactions?.Value[i];
+                Logger.LogDebug("Virtual transaction :{virtualTransaction}",virtualTransaction);
+                if (virtualTransaction != null)
+                {
+                    virtualTransaction.ParentVirtualTransactionId = txContext.Trace.ParentVirtualTransactionId;
+                    singleTxExecutingDto.ParentVirtualTxId = virtualTransaction.GetHash();;
+                }
+            }
 
             var inlineTrace = await ExecuteOneAsync(singleTxExecutingDto, cancellationToken);
 
@@ -389,6 +406,7 @@ public class PlainTransactionExecutingService : IPlainTransactionExecutingServic
             Bloom = result.Bloom,
             TransactionResult = result
         };
+        returnSet.VirtualTransactions.AddRange(trace.GetFlattenedVirtualTransactions());
 
         if (trace.IsSuccessful())
         {

@@ -155,3 +155,38 @@ message BinaryMerkleTree {
 message BigIntValue {
     string value = 1;
 }
+
+message VirtualTransaction {
+    // Kept to make it compatible with `Transaction`
+    //Address from = 1;
+    // The address of the contract when calling a contract.
+    Address to = 2;
+    // Kept to make it compatible with `Transaction`
+    //int64 ref_block_number = 3;
+    // Kept to make it compatible with `Transaction`
+    //bytes ref_block_prefix = 4;
+    // The name of a method in the smart contract at the To address.
+    string method_name = 5;
+    // The parameters to pass to the smart contract method.
+    bytes params = 6;
+    // virtual inline交易的from地址：由virtual_hash及from_contract计算
+    aelf.Address from_contract = 7;
+    aelf.Hash virtual_hash = 8;
+    // 签署人,例如CA的Management地址
+    aelf.Address signatory = 9; //authorizer,originFrom,actor,operator,Signatory,sender
+    // 父虚拟地址交易id
+    aelf.Hash parent_virtual_transaction_id = 10;
+    // VirtualTransaction对应VirtualTransactionSet集合中的index
+    int32 index = 11;
+    // Kept to make it compatible with `Transaction`
+    //bytes signature = 10000;
+}
+
+message VirtualTransactionSet{
+    // The transaction id.
+    Hash transaction_id = 1;
+    int64 block_number = 2;
+    // The hash of the block hat packages the transaction.
+    Hash block_hash = 3;
+    repeated aelf.Hash virtual_transaction_ids = 4;
+}

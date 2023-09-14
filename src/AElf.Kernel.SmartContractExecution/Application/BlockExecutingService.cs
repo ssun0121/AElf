@@ -24,16 +24,19 @@ public class BlockExecutingService : IBlockExecutingService, ITransientDependenc
     private readonly ISystemTransactionExtraDataProvider _systemTransactionExtraDataProvider;
     private readonly ITransactionExecutingService _transactionExecutingService;
     private readonly ITransactionResultService _transactionResultService;
+    private readonly IVirtualTransactionService _virtualTransactionService;
 
     public BlockExecutingService(ITransactionExecutingService transactionExecutingService,
         IBlockchainStateService blockchainStateService,
         ITransactionResultService transactionResultService,
-        ISystemTransactionExtraDataProvider systemTransactionExtraDataProvider)
+        ISystemTransactionExtraDataProvider systemTransactionExtraDataProvider,
+        IVirtualTransactionService virtualTransactionService)
     {
         _transactionExecutingService = transactionExecutingService;
         _blockchainStateService = blockchainStateService;
         _transactionResultService = transactionResultService;
         _systemTransactionExtraDataProvider = systemTransactionExtraDataProvider;
+        _virtualTransactionService = virtualTransactionService;
         EventBus = NullLocalEventBus.Instance;
     }
 
@@ -91,6 +94,8 @@ public class BlockExecutingService : IBlockExecutingService, ITransientDependenc
 
         // set txn results
         var transactionResults = await SetTransactionResultsAsync(returnSetCollection, block.Header);
+
+        await SetVirtualTransactionAsync(returnSetCollection, block.Header);
 
         // set blocks state
         blockStateSet.BlockHash = block.GetHash();
@@ -246,5 +251,16 @@ public class BlockExecutingService : IBlockExecutingService, ITransientDependenc
 
         await _transactionResultService.AddTransactionResultsAsync(results, blockHeader);
         return results;
+    }
+
+    private async Task SetVirtualTransactionAsync(
+        ExecutionReturnSetCollection executionReturnSetCollection, BlockHeader blockHeader)
+    {
+        foreach (var executionReturnSet in executionReturnSetCollection.GetExecutionReturnSetList()
+                     .Where(executionReturnSet => executionReturnSet.VirtualTransactions.Count > 0))
+        {
+            await _virtualTransactionService.AddVirtualTransactionsAsync(executionReturnSet.TransactionId, blockHeader,
+                executionReturnSet.VirtualTransactions.ToList());
+        }
     }
 }

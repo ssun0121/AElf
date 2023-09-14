@@ -63,6 +63,16 @@ public class BContract : BContractContainer.BContractBase
         return new Empty();
     }
 
+    public override Empty VirtualTxTestB(VirtualTxTestBInput input)
+    {
+        Assert(input.Value == 0, "ContractB:failed.");
+        State.BState[input.Sender] = new StringValue
+        {
+            Value = input.Value.ToString()
+        };
+        return new Empty();
+    }
+
     public override MethodFees GetMethodFee(StringValue input)
     {
         return new MethodFees

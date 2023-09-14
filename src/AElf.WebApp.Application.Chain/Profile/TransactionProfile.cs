@@ -30,6 +30,8 @@ public class TransactionProfile : Profile
             .Ignore(d => d.TransactionSize);
 
         CreateMap<LogEvent, LogEventDto>();
+
+        CreateMap<VirtualTransaction, VirtualTransactionDto>();
     }
 }
 

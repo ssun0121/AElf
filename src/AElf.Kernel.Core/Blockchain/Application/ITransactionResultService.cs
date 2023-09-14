@@ -34,6 +34,7 @@ public class TransactionResultService : ITransactionResultService, ITransientDep
             blockHeader.GetDisambiguatingHash());
     }
 
+    
     public async Task<TransactionResult> GetTransactionResultAsync(Hash transactionId)
     {
         var transactionBlockIndex =

@@ -27,6 +27,8 @@ service BContract {
 
     rpc ExecuteLoopABC(google.protobuf.StringValue) returns (google.protobuf.Empty) {
     }
+    rpc VirtualTxTestB(VirtualTxTestBInput) returns (google.protobuf.Empty){
+    }
 
     //View
     rpc CallBB(aelf.Address) returns (google.protobuf.StringValue) {
@@ -44,4 +46,8 @@ service BContract {
     rpc CallLoopABC(aelf.Address) returns (google.protobuf.StringValue) {
         option (aelf.is_view) = true;
     }
+}
+message VirtualTxTestBInput{
+    aelf.Address sender = 1;
+    int32 value = 2;
 }

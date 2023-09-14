@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AElf.Cryptography;
@@ -13,9 +10,9 @@ using AElf.Kernel.Account.Application;
 using AElf.Kernel.SmartContract.Application;
 using AElf.Types;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Options;
-using Google.Protobuf.Collections;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Threading;
 
@@ -33,18 +30,22 @@ public class HostSmartContractBridgeContext : IHostSmartContractBridgeContext, I
     private readonly Lazy<ICachedStateProvider> _lazyStateProvider;
     private readonly ISmartContractBridgeService _smartContractBridgeService;
     private readonly ITransactionReadOnlyExecutionService _transactionReadOnlyExecutionService;
+    private readonly ContractOptions _contractOptions;
+
 
     private ITransactionContext _transactionContext;
 
     public HostSmartContractBridgeContext(ISmartContractBridgeService smartContractBridgeService,
         ITransactionReadOnlyExecutionService transactionReadOnlyExecutionService, IAccountService accountService,
-        IOptionsSnapshot<HostSmartContractBridgeContextOptions> options)
+        IOptionsSnapshot<HostSmartContractBridgeContextOptions> options,
+        IOptionsSnapshot<ContractOptions> contractOptions)
     {
         _smartContractBridgeService = smartContractBridgeService;
         _transactionReadOnlyExecutionService = transactionReadOnlyExecutionService;
         _accountService = accountService;
 
         Variables = new ContextVariableDictionary(options.Value.ContextVariables);
+        _contractOptions = contractOptions.Value;
 
         var self = this;
 
@@ -233,25 +234,49 @@ public class HostSmartContractBridgeContext : IHostSmartContractBridgeContext, I
     public void SendVirtualInline(Hash fromVirtualAddress, Address toAddress, string methodName,
         ByteString args)
     {
-        TransactionContext.Trace.InlineTransactions.Add(new Transaction
+        var transaction = new Transaction
         {
             From = ConvertVirtualAddressToContractAddress(fromVirtualAddress, Self),
             To = toAddress,
             MethodName = methodName,
             Params = args
-        });
+        };
+        TransactionContext.Trace.InlineTransactions.Add(transaction);
+        if (!_contractOptions.VirtualLogEventsRequired) return;
+        var index = TransactionContext.Trace.InlineTransactions.Count.Sub(1);
+        AddVirtualTransaction(fromVirtualAddress, transaction, index);
     }
 
     public void SendVirtualInlineBySystemContract(Hash fromVirtualAddress, Address toAddress, string methodName,
         ByteString args)
     {
-        TransactionContext.Trace.InlineTransactions.Add(new Transaction
+        var transaction = new Transaction
         {
             From = ConvertVirtualAddressToContractAddressWithContractHashName(fromVirtualAddress, Self),
             To = toAddress,
             MethodName = methodName,
             Params = args
-        });
+        };
+        TransactionContext.Trace.InlineTransactions.Add(transaction);
+        if (!_contractOptions.VirtualLogEventsRequired) return;
+        var index = TransactionContext.Trace.InlineTransactions.Count.Sub(1);
+        AddVirtualTransaction(fromVirtualAddress, transaction, index);
+    }
+
+    private void AddVirtualTransaction(Hash fromVirtualAddress, Transaction transaction, long index)
+    {
+        var virtualTransaction = new VirtualTransaction
+        {
+            VirtualHash = fromVirtualAddress,
+            FromContract = Self,
+            To = transaction.To,
+            MethodName = transaction.MethodName,
+            Params = transaction.Params,
+            Signatory = Sender
+        };
+        var virtualTransactionMap = TransactionContext.Trace.VirtualTransactions ?? new VirtualTransactionMap();
+        virtualTransactionMap.Value.Add(index, virtualTransaction);
+        TransactionContext.Trace.VirtualTransactions = virtualTransactionMap;
     }
 
     public Address ConvertVirtualAddressToContractAddress(Hash virtualAddress, Address contractAddress)

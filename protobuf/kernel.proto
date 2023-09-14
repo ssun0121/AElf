@@ -60,6 +60,12 @@ message TransactionTrace {
     int64 elapsed = 11;
     ExecutionStatus execution_status = 12;
     TransactionExecutingStateSet state_set = 13;
+    VirtualTransactionMap virtual_transactions = 14;
+    Hash parent_virtual_transaction_id = 15;
+}
+
+message VirtualTransactionMap{
+    map<int64,VirtualTransaction> value = 1;
 }
 
 message ExecutionReturnSet {
@@ -71,6 +77,7 @@ message ExecutionReturnSet {
     bytes return_value = 6;
     map<string, bool> state_deletes = 7;
     TransactionResult transaction_result = 8;
+    repeated VirtualTransaction virtual_transactions = 9;
 }
 
 message BlockHeaderList {

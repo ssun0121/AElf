@@ -10,15 +10,14 @@ using AElf.Contracts.MultiToken;
 using AElf.Contracts.Parliament;
 using AElf.Contracts.Profit;
 using AElf.Contracts.TestContract.MethodCallThreshold;
-using AElf.Contracts.TestContract.VirtualAddress;
 using AElf.Contracts.TestContract.TransactionFeeCharging;
+using AElf.Contracts.TestContract.VirtualAddress;
 using AElf.Contracts.TokenConverter;
 using AElf.Contracts.Treasury;
 using AElf.Contracts.Vote;
 using AElf.Cryptography.ECDSA;
 using AElf.CSharp.Core.Extension;
 using AElf.Kernel;
-using AElf.Sdk.CSharp;
 using AElf.Standards.ACS3;
 using AElf.Types;
 using Google.Protobuf;
@@ -106,6 +105,16 @@ public partial class EconomicContractsTestBase
     
     private Address _virtualAddressContractAddress;
     protected Address VirtualAddressContractAddress => GetOrDeployContract(TestContracts.VirtualAddress, ref _virtualAddressContractAddress);
+
+    private Address _virtualTestAContractAddress;
+
+    protected Address VirtualTestAContractAddress =>
+        GetOrDeployContract(TestContracts.VirtualTestA, ref _virtualTestAContractAddress);
+
+    private Address _virtualTestBContractAddress;
+
+    protected Address VirtualTestBContractAddress =>
+        GetOrDeployContract(TestContracts.VirtualTestB, ref _virtualTestBContractAddress);
 
     #endregion
 
@@ -321,6 +330,8 @@ public partial class EconomicContractsTestBase
         _ = TokenHolderContractAddress;
         _ = AssociationContractAddress;
         _ = VirtualAddressContractAddress;
+        _ = VirtualTestAContractAddress;
+        _ = VirtualTestBContractAddress;
     }
 
     #endregion

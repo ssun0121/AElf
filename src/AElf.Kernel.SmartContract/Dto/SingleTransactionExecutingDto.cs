@@ -13,4 +13,6 @@ public class SingleTransactionExecutingDto
     public bool IsCancellable { get; set; } = true;
 
     public Hash OriginTransactionId { get; set; }
+
+    public Hash ParentVirtualTxId { get; set; }
 }

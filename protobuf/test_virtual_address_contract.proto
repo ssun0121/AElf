@@ -18,6 +18,7 @@ service VirtualAddressContract {
   rpc VirtualAddressChangeVotingOption(VirtualAddressChangeVotingOptionInput) returns (google.protobuf.Empty);
   rpc VirtualAddressClaimProfit(VirtualAddressClaimProfitInput) returns (google.protobuf.Empty);
   rpc ForwardCall(ForwardCallInput) returns (google.protobuf.Empty);
+  rpc ForwardCallVirtualTest(ForwardCallInput) returns (google.protobuf.Empty);
   
   rpc GetVirtualAddress(google.protobuf.Empty) returns (aelf.Address) {
     option (aelf.is_view) = true;
